@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+# shellcheck disable=SC1091
+source "$repo_root/sources.lock.env"
+
+output_dir=${1:-"$repo_root/dist"}
+work_root=${2:-}
+created_work=0
+if [ -z "$work_root" ]; then
+    work_root=$(mktemp -d "${TMPDIR:-/tmp}/pasturestack-vsphere-cli.XXXXXX")
+    created_work=1
+fi
+
+cleanup()
+{
+    if [ "$created_work" = 1 ]; then
+        rm -rf -- "$work_root"
+    fi
+}
+trap cleanup EXIT INT TERM
+
+for command_name in git go sha256sum tar xz; do
+    command -v "$command_name" >/dev/null
+done
+
+actual_go_version=$(go env GOVERSION)
+if [ "$actual_go_version" != "go${BUILD_GO_VERSION}" ]; then
+    printf 'Expected Go %s, found %s\n' "$BUILD_GO_VERSION" "$actual_go_version" >&2
+    exit 1
+fi
+
+source_dir="$work_root/source"
+stage_dir="$work_root/stage"
+rm -rf -- "$source_dir" "$stage_dir"
+mkdir -p "$source_dir" "$stage_dir" "$output_dir"
+
+git -C "$source_dir" init -q
+git -C "$source_dir" remote add origin "$GOVMOMI_REPOSITORY"
+git -C "$source_dir" fetch -q --depth=1 origin "$GOVMOMI_COMMIT"
+git -C "$source_dir" checkout -q --detach FETCH_HEAD
+
+actual_commit=$(git -C "$source_dir" rev-parse HEAD)
+if [ "$actual_commit" != "$GOVMOMI_COMMIT" ]; then
+    printf 'Unexpected upstream commit: %s\n' "$actual_commit" >&2
+    exit 1
+fi
+
+printf '%s  %s\n' "$GOVMOMI_LICENSE_SHA256" "$source_dir/$GOVMOMI_LICENSE_PATH" | sha256sum -c -
+
+ldflags="-s -w -buildid= -X github.com/vmware/govmomi/cli/flags.BuildVersion=v${GOVMOMI_VERSION} -X github.com/vmware/govmomi/cli/flags.BuildCommit=${GOVMOMI_SHORT_COMMIT} -X github.com/vmware/govmomi/cli/flags.BuildDate=${GOVMOMI_RELEASE_DATE}"
+(
+    cd "$source_dir/govc"
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+        go build -mod=readonly -trimpath -buildvcs=false -tags netgo \
+        -ldflags "$ldflags" -o "$stage_dir/govc" .
+)
+
+printf '%s  %s\n' "$GOVC_BINARY_SHA256" "$stage_dir/govc" | sha256sum -c -
+
+{
+    printf 'PastureStack packaging recipe\n'
+    printf '================================\n\n'
+    cat "$repo_root/LICENSE"
+    printf '\n\nvmware/govmomi and govc\n'
+    printf '========================\n\n'
+    cat "$source_dir/$GOVMOMI_LICENSE_PATH"
+} > "$stage_dir/vsphere-cli-bundle-LICENSES.txt"
+
+cat > "$stage_dir/vsphere-cli-bundle-SOURCES.txt" <<EOF
+Component: govc from vmware/govmomi
+Repository: $GOVMOMI_REPOSITORY
+Tag: $GOVMOMI_TAG
+Commit: $GOVMOMI_COMMIT
+License: Apache-2.0
+License path: $GOVMOMI_LICENSE_PATH
+License SHA-256: $GOVMOMI_LICENSE_SHA256
+Build Go version: $BUILD_GO_VERSION
+Binary SHA-256: $GOVC_BINARY_SHA256
+EOF
+
+cat > "$stage_dir/vsphere-cli-bundle-THIRD-PARTY-NOTICES.txt" <<EOF
+The govc executable is built from vmware/govmomi at the immutable source
+coordinate recorded in vsphere-cli-bundle-SOURCES.txt. The upstream project
+and its contributors retain their copyright and Apache-2.0 license rights.
+PastureStack provides only the independent packaging recipe and does not claim
+authorship of the upstream project or endorsement by its maintainers.
+EOF
+
+chmod 0755 "$stage_dir/govc"
+chmod 0644 "$stage_dir"/*.txt
+find "$stage_dir" -exec touch -h -d "@${SOURCE_DATE_EPOCH}" {} +
+
+artifact="vsphere-cli-bundle-${GOVMOMI_VERSION}-linux-amd64.tar.xz"
+tar --sort=name --format=gnu --owner=0 --group=0 --numeric-owner \
+    --mtime="@${SOURCE_DATE_EPOCH}" -C "$stage_dir" -cf - \
+    govc \
+    vsphere-cli-bundle-LICENSES.txt \
+    vsphere-cli-bundle-SOURCES.txt \
+    vsphere-cli-bundle-THIRD-PARTY-NOTICES.txt \
+    | xz --threads=1 --check=crc64 -9e > "$output_dir/$artifact"
+
+sha256sum "$output_dir/$artifact"

@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+# shellcheck disable=SC1091
+source "$repo_root/sources.lock.env"
+
+test_root=${1:-$(mktemp -d "${TMPDIR:-/tmp}/pasturestack-vsphere-cli-test.XXXXXX")}
+created_root=0
+if [ "$#" -eq 0 ]; then
+    created_root=1
+fi
+
+cleanup()
+{
+    if [ "$created_root" = 1 ]; then
+        rm -rf -- "$test_root"
+    fi
+}
+trap cleanup EXIT INT TERM
+
+mkdir -p "$test_root/first" "$test_root/second" "$test_root/work-first" "$test_root/work-second" "$test_root/extracted"
+
+"$repo_root/scripts/package" "$test_root/first" "$test_root/work-first"
+"$repo_root/scripts/package" "$test_root/second" "$test_root/work-second"
+
+(
+    cd "$test_root/work-first/source/govc"
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go test -mod=readonly .
+)
+
+artifact="vsphere-cli-bundle-${GOVMOMI_VERSION}-linux-amd64.tar.xz"
+cmp "$test_root/first/$artifact" "$test_root/second/$artifact"
+
+expected_entries=$(printf '%s\n' \
+    govc \
+    vsphere-cli-bundle-LICENSES.txt \
+    vsphere-cli-bundle-SOURCES.txt \
+    vsphere-cli-bundle-THIRD-PARTY-NOTICES.txt)
+actual_entries=$(tar -tJf "$test_root/first/$artifact" | LC_ALL=C sort)
+if [ "$actual_entries" != "$expected_entries" ]; then
+    printf 'Unexpected archive entries:\n%s\n' "$actual_entries" >&2
+    exit 1
+fi
+
+tar -xJf "$test_root/first/$artifact" -C "$test_root/extracted"
+govc_binary="$test_root/extracted/govc"
+printf '%s  %s\n' "$GOVC_BINARY_SHA256" "$govc_binary" | sha256sum -c -
+
+file "$govc_binary" | grep -F 'ELF 64-bit LSB executable, x86-64' >/dev/null
+file "$govc_binary" | grep -F 'statically linked' >/dev/null
+file "$govc_binary" | grep -F 'stripped' >/dev/null
+go version -m "$govc_binary" | grep -F "go${BUILD_GO_VERSION}" >/dev/null
+
+test "$("$govc_binary" version)" = "govc ${GOVMOMI_VERSION}"
+"$govc_binary" version -require "$GOVMOMI_VERSION" >/dev/null
+version_long=$("$govc_binary" version -l)
+printf '%s\n' "$version_long" | grep -Fx "Build Version: v${GOVMOMI_VERSION}" >/dev/null
+printf '%s\n' "$version_long" | grep -Fx "Build Commit: ${GOVMOMI_SHORT_COMMIT}" >/dev/null
+printf '%s\n' "$version_long" | grep -Fx "Build Date: ${GOVMOMI_RELEASE_DATE}" >/dev/null
+"$govc_binary" about -h >/dev/null
+
+grep -F "Commit: $GOVMOMI_COMMIT" "$test_root/extracted/vsphere-cli-bundle-SOURCES.txt" >/dev/null
+grep -F "License SHA-256: $GOVMOMI_LICENSE_SHA256" "$test_root/extracted/vsphere-cli-bundle-SOURCES.txt" >/dev/null
+grep -F 'Apache License' "$test_root/extracted/vsphere-cli-bundle-LICENSES.txt" >/dev/null
+grep -F 'MIT License' "$test_root/extracted/vsphere-cli-bundle-LICENSES.txt" >/dev/null
+
+printf 'VSPHERE_CLI_BUNDLE_OK version=%s source=%s reproducible=1 live_vsphere_lifecycle=pending\n' \
+    "$GOVMOMI_VERSION" "$GOVMOMI_COMMIT"
