@@ -52,6 +52,8 @@ file "$govc_binary" | grep -F 'ELF 64-bit LSB executable, x86-64' >/dev/null
 file "$govc_binary" | grep -F 'statically linked' >/dev/null
 file "$govc_binary" | grep -F 'stripped' >/dev/null
 go version -m "$govc_binary" | grep -F "go${BUILD_GO_VERSION}" >/dev/null
+go version -m "$govc_binary" | awk -v expected="v${GOVMOMI_X_TEXT_VERSION}" \
+    '$1 == "dep" && $2 == "golang.org/x/text" && $3 == expected { found = 1 } END { exit !found }'
 
 test "$("$govc_binary" version)" = "govc ${GOVMOMI_VERSION}"
 "$govc_binary" version -require "$GOVMOMI_VERSION" >/dev/null
@@ -61,7 +63,8 @@ printf '%s\n' "$version_long" | grep -Fx "Build Commit: ${GOVMOMI_SHORT_COMMIT}"
 printf '%s\n' "$version_long" | grep -Fx "Build Date: ${GOVMOMI_RELEASE_DATE}" >/dev/null
 "$govc_binary" about -h >/dev/null
 
-grep -F "Commit: $GOVMOMI_COMMIT" "$test_root/extracted/vsphere-cli-bundle-SOURCES.txt" >/dev/null
+grep -F "Pinned source commit: $GOVMOMI_COMMIT" "$test_root/extracted/vsphere-cli-bundle-SOURCES.txt" >/dev/null
+grep -F "Security dependency: golang.org/x/text v$GOVMOMI_X_TEXT_VERSION" "$test_root/extracted/vsphere-cli-bundle-SOURCES.txt" >/dev/null
 grep -F "License SHA-256: $GOVMOMI_LICENSE_SHA256" "$test_root/extracted/vsphere-cli-bundle-SOURCES.txt" >/dev/null
 grep -F 'Apache License' "$test_root/extracted/vsphere-cli-bundle-LICENSES.txt" >/dev/null
 grep -F 'MIT License' "$test_root/extracted/vsphere-cli-bundle-LICENSES.txt" >/dev/null

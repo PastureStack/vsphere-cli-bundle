@@ -48,6 +48,12 @@ if [ "$actual_commit" != "$GOVMOMI_COMMIT" ]; then
     exit 1
 fi
 
+actual_x_text_version=$(cd "$source_dir/govc" && go list -mod=readonly -m -f '{{.Version}}' golang.org/x/text)
+if [ "$actual_x_text_version" != "v${GOVMOMI_X_TEXT_VERSION}" ]; then
+    printf 'Unexpected golang.org/x/text version: %s\n' "$actual_x_text_version" >&2
+    exit 1
+fi
+
 printf '%s  %s\n' "$GOVMOMI_LICENSE_SHA256" "$source_dir/$GOVMOMI_LICENSE_PATH" | sha256sum -c -
 
 ldflags="-s -w -buildid= -X github.com/vmware/govmomi/cli/flags.BuildVersion=v${GOVMOMI_VERSION} -X github.com/vmware/govmomi/cli/flags.BuildCommit=${GOVMOMI_SHORT_COMMIT} -X github.com/vmware/govmomi/cli/flags.BuildDate=${GOVMOMI_RELEASE_DATE}"
@@ -72,8 +78,9 @@ printf '%s  %s\n' "$GOVC_BINARY_SHA256" "$stage_dir/govc" | sha256sum -c -
 cat > "$stage_dir/vsphere-cli-bundle-SOURCES.txt" <<EOF
 Component: govc from vmware/govmomi
 Repository: $GOVMOMI_REPOSITORY
-Tag: $GOVMOMI_TAG
-Commit: $GOVMOMI_COMMIT
+Reference release tag: $GOVMOMI_REFERENCE_TAG
+Pinned source commit: $GOVMOMI_COMMIT
+Security dependency: golang.org/x/text v$GOVMOMI_X_TEXT_VERSION
 License: Apache-2.0
 License path: $GOVMOMI_LICENSE_PATH
 License SHA-256: $GOVMOMI_LICENSE_SHA256
@@ -82,8 +89,9 @@ Binary SHA-256: $GOVC_BINARY_SHA256
 EOF
 
 cat > "$stage_dir/vsphere-cli-bundle-THIRD-PARTY-NOTICES.txt" <<EOF
-The govc executable is built from vmware/govmomi at the immutable source
-coordinate recorded in vsphere-cli-bundle-SOURCES.txt. The upstream project
+The govc executable is built from vmware/govmomi at the immutable post-release
+source coordinate recorded in vsphere-cli-bundle-SOURCES.txt. The pinned source
+includes the upstream golang.org/x/text security update. The upstream project
 and its contributors retain their copyright and Apache-2.0 license rights.
 PastureStack provides only the independent packaging recipe and does not claim
 authorship of the upstream project or endorsement by its maintainers.
