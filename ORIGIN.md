@@ -12,6 +12,6 @@ The packaged `govc` executable is built from:
 - License: Apache-2.0
 - License file: `LICENSE.txt`
 
-The pinned commit is the upstream dependency-maintenance commit published after `v0.55.1` that updates `golang.org/x/text` to its security-fixed version. It is recorded as an exact source coordinate, not represented as a direct descendant of the reference tag. The package suffix makes this boundary explicit. The packaging recipe verifies the exact commit, dependency version, and SHA-256 of the upstream license before building.
+The pinned commit is the upstream dependency-maintenance commit published after `v0.55.1` that updates `golang.org/x/text` to its security-fixed version. It is recorded as an exact source coordinate, not represented as a direct descendant of the reference tag. The suffix on the previous artifact remains immutable historical evidence; the current publication uses pure numeric version `0.55.2`. The packaging recipe verifies the exact commit, dependency version, and SHA-256 of the upstream license before building.
 
 The root MIT license applies only to PastureStack-authored packaging code and documentation. The upstream copyright and Apache-2.0 terms remain intact and are reproduced in every release archive.
