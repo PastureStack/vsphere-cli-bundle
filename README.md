@@ -6,10 +6,10 @@ This repository contains an independent, deterministic packaging recipe for the 
 
 ## Release asset
 
-The expected output is:
+The current recipe produces:
 
 ```text
-vsphere-cli-bundle-0.55.1-pasturestack.2-linux-amd64.tar.xz
+vsphere-cli-bundle-0.55.2-linux-amd64.tar.xz
 ```
 
 The archive contains:
@@ -23,7 +23,7 @@ vsphere-cli-bundle-THIRD-PARTY-NOTICES.txt
 
 Run `scripts/test` in an Ubuntu environment with Git, GNU tar, xz, and Go 1.27.0. The test performs two independent builds, compares the archives byte for byte, verifies the fixed source and license, checks the executable format and build metadata, and exercises the compatibility command surface.
 
-The current package pins the first upstream commit published after `v0.55.1` that updates `golang.org/x/text` to the security-fixed `v0.39.0`. The `pasturestack.2` suffix keeps that exact source boundary while recording the Go 1.27 rebuild that replaces the earlier Go 1.26.5 artifact; it is not represented as an unmodified upstream release or as a direct descendant of the reference tag.
+The package pins the first upstream commit published after `v0.55.1` that updates `golang.org/x/text` to the security-fixed `v0.39.0`. The historical `pasturestack.2` suffix recorded that source boundary and the Go 1.27 rebuild that replaced the earlier Go 1.26.5 artifact. It remains only in immutable historical evidence. The current publication rebuilds and verifies the bundle as the pure numeric successor `v0.55.2`; product identity and provenance belong in package metadata, not the version string.
 
 ## Distribution model
 
