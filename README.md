@@ -23,7 +23,7 @@ vsphere-cli-bundle-THIRD-PARTY-NOTICES.txt
 
 Run `scripts/test` in an Ubuntu environment with Git, GNU tar, xz, and Go 1.27.0. The test performs two independent builds, compares the archives byte for byte, verifies the fixed source and license, checks the executable format and build metadata, and exercises the compatibility command surface.
 
-The package pins the first upstream commit published after `v0.55.1` that updates `golang.org/x/text` to the security-fixed `v0.39.0`. The historical `pasturestack.2` suffix recorded that source boundary and the Go 1.27 rebuild that replaced the earlier Go 1.26.5 artifact. It remains only in immutable historical evidence. The current publication rebuilds and verifies the bundle as the pure numeric successor `v0.55.2`; product identity and provenance belong in package metadata, not the version string.
+The package pins the first upstream commit published after `v0.55.1` that updates `golang.org/x/text` to the security-fixed `v0.39.0`. Earlier publications remain immutable historical evidence. The current publication rebuilds and verifies the bundle as `v0.55.2`; every current and future PastureStack publication uses a pure numeric version, while product identity and provenance remain in package metadata rather than the version string.
 
 ## Distribution model
 
