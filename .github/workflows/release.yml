@@ -40,11 +40,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          archive="$RUNNER_TEMP/go1.27.0.linux-amd64.tar.gz"
+          archive="$RUNNER_TEMP/go1.27.2.linux-amd64.tar.gz"
           curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
-            --output "$archive" https://go.dev/dl/go1.27.0.linux-amd64.tar.gz
+            --output "$archive" https://go.dev/dl/go1.27.2.linux-amd64.tar.gz
           printf '%s  %s\n' \
-            675c26c449cbb18fc24b74650de1eabbae6e16f64326fd85a283fb3b58280685 \
+            ecbadb99091a3f46e31f5f934b068b1864eafa7995211b39eaddf76996045fe5 \
             "$archive" | sha256sum -c -
           tar -C "$RUNNER_TEMP" -xzf "$archive"
           printf '%s\n' "$RUNNER_TEMP/go/bin" >> "$GITHUB_PATH"
@@ -75,7 +75,7 @@ jobs:
           artifact="dist/vsphere-cli-bundle-${version}-linux-amd64.tar.xz"
           gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag \
             --title "vSphere CLI Bundle ${version}" \
-            --notes 'Deterministic Go 1.27.0 build from the pinned govmomi source coordinate, with pure numeric artifact versioning and checksummed provenance.' \
+            --notes 'Deterministic Go 1.27.2 build from the pinned govmomi source coordinate, with pure numeric artifact versioning and checksummed provenance.' \
             "$artifact" dist/SHA256SUMS
 
       - name: Clean generated files
