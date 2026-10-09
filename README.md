@@ -9,7 +9,7 @@ This repository contains an independent, deterministic packaging recipe for the 
 The current recipe produces:
 
 ```text
-vsphere-cli-bundle-0.55.2-linux-amd64.tar.xz
+vsphere-cli-bundle-0.55.3-linux-amd64.tar.xz
 ```
 
 The archive contains:
@@ -23,7 +23,9 @@ vsphere-cli-bundle-THIRD-PARTY-NOTICES.txt
 
 Run `scripts/test` in an Ubuntu environment with Git, GNU tar, xz, and Go 1.27.0. The test performs two independent builds, compares the archives byte for byte, verifies the fixed source and license, checks the executable format and build metadata, and exercises the compatibility command surface.
 
-The package pins the first upstream commit published after `v0.55.1` that updates `golang.org/x/text` to the security-fixed `v0.39.0`. Earlier publications remain immutable historical evidence. The current publication rebuilds and verifies the bundle as `v0.55.2`; every current and future PastureStack publication uses a pure numeric version, while product identity and provenance remain in package metadata rather than the version string.
+Every current and future PastureStack publication uses a pure numeric version, while product identity and provenance remain in package metadata rather than the version string. Earlier publications remain immutable historical evidence.
+
+The package preserves the exact govmomi source commit and Go 1.27.0 toolchain. Its dependency-only override updates `golang.org/x/text` from `v0.39.0` to `v0.41.0` for [GO-2026-6629](https://pkg.go.dev/vuln/GO-2026-6629), changing only `govc/go.mod` and the verified official `govc/go.sum` entries; upstream Go source remains unchanged. The current recipe produces pure numeric version `0.55.3`. It is an unpublished recipe candidate; package publication is a separate reviewed step.
 
 ## Distribution model
 
@@ -37,4 +39,4 @@ See [ORIGIN.md](ORIGIN.md) for exact attribution and [sources.lock.env](sources.
 
 ## Current release gate
 
-Package reproducibility and offline command-surface checks do not prove a live vSphere lifecycle. Authenticated inventory, clone, power, delete, upgrade, rollback, and failure recovery remain required integration gates before production publication.
+This dependency-only release checks reproducible packaging, the unchanged upstream Go source, the fixed module and the existing offline CLI contracts. It does not claim a new live vSphere lifecycle test. Existing integration evidence is carried only for unchanged paths; live operations not exercised in this release remain explicitly untested. The assembled Server's artifact gate must confirm the fixed dependency.
