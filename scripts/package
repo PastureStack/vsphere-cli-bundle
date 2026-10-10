@@ -5,6 +5,14 @@ set -euo pipefail
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 # shellcheck disable=SC1091
 source "$repo_root/sources.lock.env"
+discovery=${PASTURESTACK_GOVC_SHA256_DISCOVERY:-0}
+case "$discovery" in 0|1) ;; *) echo 'Invalid SHA-256 discovery mode' >&2; exit 2 ;; esac
+if [ "$discovery" = 0 ]; then
+    [[ $GOVC_BINARY_SHA256 =~ ^[0-9a-f]{64}$ ]] || {
+        echo 'A locked binary SHA-256 is required for formal packaging' >&2
+        exit 2
+    }
+fi
 
 output_dir=${1:-"$repo_root/dist"}
 work_root=${2:-}
@@ -48,6 +56,33 @@ if [ "$actual_commit" != "$GOVMOMI_COMMIT" ]; then
     exit 1
 fi
 
+module_dir="$source_dir/govc"
+base_x_text_version=$(cd "$module_dir" && go list -mod=readonly -m -f '{{.Version}}' golang.org/x/text)
+test "$base_x_text_version" = "v${GOVMOMI_BASE_X_TEXT_VERSION}"
+# Preserve immutable upstream Go source; only the requirement and official
+# checksum entries are updated for GO-2026-6629.
+(
+    cd "$module_dir"
+    go mod edit -require="golang.org/x/text@v${GOVMOMI_X_TEXT_VERSION}"
+    GOSUMDB=sum.golang.org GOPROXY=https://proxy.golang.org \
+        GONOSUMDB= GONOPROXY= GOPRIVATE= \
+        go mod download "golang.org/x/text@v${GOVMOMI_X_TEXT_VERSION}"
+)
+printf 'govc/go.mod\ngovc/go.sum\n' > "$work_root/expected-changed-files"
+git -C "$source_dir" diff --name-only | LC_ALL=C sort > "$work_root/actual-changed-files"
+cmp "$work_root/expected-changed-files" "$work_root/actual-changed-files"
+test -z "$(git -C "$source_dir" ls-files --others --exclude-standard)"
+git -C "$source_dir" show HEAD:govc/go.mod |
+    sed "s|^\([[:space:]]*golang.org/x/text \)v${GOVMOMI_BASE_X_TEXT_VERSION}\(.*\)$|\1v${GOVMOMI_X_TEXT_VERSION}\2|" \
+    > "$work_root/expected-go.mod"
+cmp "$work_root/expected-go.mod" "$module_dir/go.mod"
+{
+    git -C "$source_dir" show HEAD:govc/go.sum
+    printf 'golang.org/x/text v%s %s\n' "$GOVMOMI_X_TEXT_VERSION" "$GOVMOMI_X_TEXT_SUM"
+    printf 'golang.org/x/text v%s/go.mod %s\n' "$GOVMOMI_X_TEXT_VERSION" "$GOVMOMI_X_TEXT_GO_MOD_SUM"
+} | LC_ALL=C sort -u > "$work_root/expected-go.sum"
+LC_ALL=C sort -u "$module_dir/go.sum" > "$work_root/actual-go.sum"
+cmp "$work_root/expected-go.sum" "$work_root/actual-go.sum"
 actual_x_text_version=$(cd "$source_dir/govc" && go list -mod=readonly -m -f '{{.Version}}' golang.org/x/text)
 if [ "$actual_x_text_version" != "v${GOVMOMI_X_TEXT_VERSION}" ]; then
     printf 'Unexpected golang.org/x/text version: %s\n' "$actual_x_text_version" >&2
@@ -64,6 +99,12 @@ ldflags="-s -w -buildid= -X github.com/vmware/govmomi/cli/flags.BuildVersion=v${
         -ldflags "$ldflags" -o "$stage_dir/govc" .
 )
 
+if [ "$discovery" = 1 ]; then
+    printf 'GOVC_SHA256_DISCOVERY '
+    sha256sum "$stage_dir/govc"
+    printf 'Discovery only: no release archive produced\n'
+    exit 0
+fi
 printf '%s  %s\n' "$GOVC_BINARY_SHA256" "$stage_dir/govc" | sha256sum -c -
 
 {
@@ -80,7 +121,12 @@ Component: govc from vmware/govmomi
 Repository: $GOVMOMI_REPOSITORY
 Reference release tag: $GOVMOMI_REFERENCE_TAG
 Pinned source commit: $GOVMOMI_COMMIT
+Base upstream security dependency: golang.org/x/text v$GOVMOMI_BASE_X_TEXT_VERSION
+Dependency-only override: govc/go.mod and govc/go.sum; upstream Go source unchanged
 Security dependency: golang.org/x/text v$GOVMOMI_X_TEXT_VERSION
+Module checksum: $GOVMOMI_X_TEXT_SUM
+Module go.mod checksum: $GOVMOMI_X_TEXT_GO_MOD_SUM
+Security advisory: https://pkg.go.dev/vuln/GO-2026-6629
 License: Apache-2.0
 License path: $GOVMOMI_LICENSE_PATH
 License SHA-256: $GOVMOMI_LICENSE_SHA256
@@ -90,8 +136,9 @@ EOF
 
 cat > "$stage_dir/vsphere-cli-bundle-THIRD-PARTY-NOTICES.txt" <<EOF
 The govc executable is built from vmware/govmomi at the immutable post-release
-source coordinate recorded in vsphere-cli-bundle-SOURCES.txt. The pinned source
-includes the upstream golang.org/x/text security update. The upstream project
+source coordinate recorded in vsphere-cli-bundle-SOURCES.txt. The packaging
+recipe applies only the documented golang.org/x/text module requirement and
+official checksum override; upstream Go source is unchanged. The upstream project
 and its contributors retain their copyright and Apache-2.0 license rights.
 PastureStack provides only the independent packaging recipe and does not claim
 authorship of the upstream project or endorsement by its maintainers.
