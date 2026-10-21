@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - 'fix/go1273-*'
   workflow_dispatch:
 
 permissions:
@@ -13,3 +14,32 @@ permissions:
 jobs:
   integrity:
     uses: PastureStack/.github/.github/workflows/repository-integrity.yml@0830b344f020bcb7792a112c376bbfac48e63fa5 # pinned main
+
+  verify-bundle:
+    if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/fix/go1273-')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install checksum-pinned production Go compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/go1.27.3.linux-amd64.tar.gz"
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
+            --output "$archive" https://go.dev/dl/go1.27.3.linux-amd64.tar.gz
+          printf '%s  %s\n' 65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40 "$archive" | sha256sum -c -
+          tar -C "$RUNNER_TEMP" -xzf "$archive"
+          test "$("$RUNNER_TEMP/go/bin/go" env GOVERSION)" = go1.27.3
+          printf '%s\n' "$RUNNER_TEMP/go/bin" >> "$GITHUB_PATH"
+      - name: Discover actual compiler output then verify the locked bundle
+        shell: bash
+        env:
+          GOTOOLCHAIN: local
+        run: |
+          set -euo pipefail
+          PASTURESTACK_GOVC_SHA256_DISCOVERY=1 scripts/package "$RUNNER_TEMP/discovery" "$RUNNER_TEMP/discovery-work"
+          go version -m "$RUNNER_TEMP/discovery-work/stage/govc"
+          scripts/test
