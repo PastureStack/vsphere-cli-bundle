@@ -25,7 +25,7 @@ Run `scripts/test` in an Ubuntu environment with Git, GNU tar, xz, and Go 1.27.3
 
 Every current and future PastureStack publication uses a pure numeric version, while product identity and provenance remain in package metadata rather than the version string. Earlier publications remain immutable historical evidence.
 
-The package preserves the exact govmomi source commit and uses Go 1.27.3. Its dependency-only override updates `golang.org/x/text` from `v0.39.0` to `v0.41.0` for [GO-2026-6629](https://pkg.go.dev/vuln/GO-2026-6629), changing only `govc/go.mod` and the verified official `govc/go.sum` entries; upstream Go source remains unchanged. The current recipe produces pure numeric version `0.55.4`. Published `v0.55.3` and earlier assets remain immutable. The new recipe is a candidate; package publication is a separate reviewed step.
+The package preserves the exact govmomi source commit and uses Go 1.27.3. Its dependency-only override updates `golang.org/x/text` from `v0.39.0` to `v0.41.0` for [GO-2026-6629](https://pkg.go.dev/vuln/GO-2026-6629), changing only `govc/go.mod` and the verified official `govc/go.sum` entries; upstream Go source remains unchanged. The current recipe produces pure numeric version `0.55.4`. The official [v0.55.4 release](https://github.com/PastureStack/vsphere-cli-bundle/releases/tag/v0.55.4) and earlier assets remain immutable. Source changes alone are not publication proof: verify the official release assets and their SHA-256. Later recipe or documentation commits do not change the published assets' producer identity; component publication and matching Server acceptance are separate evidence boundaries.
 
 ## Distribution model
 
