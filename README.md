@@ -9,7 +9,7 @@ This repository contains an independent, deterministic packaging recipe for the 
 The current recipe produces:
 
 ```text
-vsphere-cli-bundle-0.55.3-linux-amd64.tar.xz
+vsphere-cli-bundle-0.55.4-linux-amd64.tar.xz
 ```
 
 The archive contains:
@@ -21,11 +21,11 @@ vsphere-cli-bundle-SOURCES.txt
 vsphere-cli-bundle-THIRD-PARTY-NOTICES.txt
 ```
 
-Run `scripts/test` in an Ubuntu environment with Git, GNU tar, xz, and Go 1.27.2. The test performs two independent builds, compares the archives byte for byte, verifies the fixed source and license, checks the executable format and build metadata, and exercises the compatibility command surface.
+Run `scripts/test` in an Ubuntu environment with Git, GNU tar, xz, and Go 1.27.3. The test performs two independent builds, compares the archives byte for byte, verifies the fixed source and license, checks the executable format and build metadata, and exercises the compatibility command surface.
 
 Every current and future PastureStack publication uses a pure numeric version, while product identity and provenance remain in package metadata rather than the version string. Earlier publications remain immutable historical evidence.
 
-The package preserves the exact govmomi source commit and uses Go 1.27.2. Its dependency-only override updates `golang.org/x/text` from `v0.39.0` to `v0.41.0` for [GO-2026-6629](https://pkg.go.dev/vuln/GO-2026-6629), changing only `govc/go.mod` and the verified official `govc/go.sum` entries; upstream Go source remains unchanged. The current recipe produces pure numeric version `0.55.3`. It is an unpublished recipe candidate; package publication is a separate reviewed step.
+The package preserves the exact govmomi source commit and uses Go 1.27.3. Its dependency-only override updates `golang.org/x/text` from `v0.39.0` to `v0.41.0` for [GO-2026-6629](https://pkg.go.dev/vuln/GO-2026-6629), changing only `govc/go.mod` and the verified official `govc/go.sum` entries; upstream Go source remains unchanged. The current recipe produces pure numeric version `0.55.4`. Published `v0.55.3` and earlier assets remain immutable. The new recipe is a candidate; package publication is a separate reviewed step.
 
 ## Distribution model
 
