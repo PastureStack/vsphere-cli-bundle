@@ -34,12 +34,11 @@ jobs:
           tar -C "$RUNNER_TEMP" -xzf "$archive"
           test "$("$RUNNER_TEMP/go/bin/go" env GOVERSION)" = go1.27.3
           printf '%s\n' "$RUNNER_TEMP/go/bin" >> "$GITHUB_PATH"
-      - name: Discover actual compiler output then verify the locked bundle
+      - name: Verify the locked reproducible bundle and record build information
         shell: bash
         env:
           GOTOOLCHAIN: local
         run: |
           set -euo pipefail
-          PASTURESTACK_GOVC_SHA256_DISCOVERY=1 scripts/package "$RUNNER_TEMP/discovery" "$RUNNER_TEMP/discovery-work"
-          go version -m "$RUNNER_TEMP/discovery-work/stage/govc"
-          scripts/test
+          scripts/test "$RUNNER_TEMP/verification"
+          go version -m "$RUNNER_TEMP/verification/extracted/govc"
