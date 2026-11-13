@@ -105,7 +105,12 @@ if [ "$discovery" = 1 ]; then
     printf 'Discovery only: no release archive produced\n'
     exit 0
 fi
-printf '%s  %s\n' "$GOVC_BINARY_SHA256" "$stage_dir/govc" | sha256sum -c -
+actual_sha256=$(sha256sum "$stage_dir/govc")
+actual_sha256=${actual_sha256%% *}
+if [ "$actual_sha256" != "$GOVC_BINARY_SHA256" ]; then
+    printf 'govc SHA-256 mismatch: expected %s, built %s\n' "$GOVC_BINARY_SHA256" "$actual_sha256" >&2
+    exit 1
+fi
 
 {
     printf 'PastureStack packaging recipe\n'
