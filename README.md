@@ -9,7 +9,7 @@ This repository contains an independent, deterministic packaging recipe for the 
 The current recipe produces:
 
 ```text
-vsphere-cli-bundle-0.55.4-linux-amd64.tar.xz
+vsphere-cli-bundle-0.55.5-linux-amd64.tar.xz
 ```
 
 The archive contains:
@@ -21,11 +21,11 @@ vsphere-cli-bundle-SOURCES.txt
 vsphere-cli-bundle-THIRD-PARTY-NOTICES.txt
 ```
 
-Run `scripts/test` in an Ubuntu environment with Git, GNU tar, xz, and Go 1.27.3. The test performs two independent builds, compares the archives byte for byte, verifies the fixed source and license, checks the executable format and build metadata, and exercises the compatibility command surface.
+Run `scripts/test` in an Ubuntu environment with Git, GNU tar, xz, and Go 1.27.4. The test performs two independent builds, compares the archives byte for byte, verifies the fixed source and license, checks the executable format and build metadata, and exercises the compatibility command surface.
 
 Every current and future PastureStack publication uses a pure numeric version, while product identity and provenance remain in package metadata rather than the version string. Earlier publications remain immutable historical evidence.
 
-The package preserves the exact govmomi source commit and uses Go 1.27.3. Its dependency-only override updates `golang.org/x/text` from `v0.39.0` to `v0.41.0` for [GO-2026-6629](https://pkg.go.dev/vuln/GO-2026-6629), changing only `govc/go.mod` and the verified official `govc/go.sum` entries; upstream Go source remains unchanged. The current recipe produces pure numeric version `0.55.4`. The official [v0.55.4 release](https://github.com/PastureStack/vsphere-cli-bundle/releases/tag/v0.55.4) and earlier assets remain immutable. Source changes alone are not publication proof: verify the official release assets and their SHA-256. Later recipe or documentation commits do not change the published assets' producer identity; component publication and matching Server acceptance are separate evidence boundaries.
+The package preserves the exact govmomi source commit and uses Go 1.27.4. Its dependency-only override updates `golang.org/x/text` from `v0.39.0` to `v0.41.0` for [GO-2026-6629](https://pkg.go.dev/vuln/GO-2026-6629), changing only `govc/go.mod` and the verified official `govc/go.sum` entries; upstream Go source remains unchanged. The current recipe produces pure numeric version `0.55.5`. The official [v0.55.5 release](https://github.com/PastureStack/vsphere-cli-bundle/releases/tag/v0.55.5) and earlier assets remain immutable. Source changes alone are not publication proof: verify the official release assets and their SHA-256. Later recipe or documentation commits do not change the published assets' producer identity; component publication and matching Server acceptance are separate evidence boundaries.
 
 ## Distribution model
 
